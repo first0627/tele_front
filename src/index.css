@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+@layer base {
+  :root {
+    --color-brand: #F96162; /* ✅ Tailwind에서 사용할 brand 색상 */
+  }
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -7,9 +13,21 @@ body {
   sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  @apply flex flex-col items-center;
+}
+
+#root {
+  @apply w-full max-w-screen-2xl;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
   monospace;
+}
+
+/* ✅ Tailwind 유틸리티 클래스로 brand 색상 추가 */
+@layer utilities {
+  .text-brand {
+    color: var(--color-brand);
+  }
 }
