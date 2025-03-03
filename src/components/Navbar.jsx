@@ -1,11 +1,19 @@
 import {Link} from 'react-router-dom';
 import {FiShoppingBag} from 'react-icons/fi';
 import {BsFillPencilFill} from 'react-icons/bs';
-import {useState} from 'react';
-import {login, logout} from '../api/filebase.js';
+import {useEffect, useState} from 'react';
+import {login, logout, onUserStateChanged} from '../api/filebase.js';
 
 export default function Navbar() {
   const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    onUserStateChanged((user) => {
+      console.log(user);
+      setUser(user);
+    });
+  }, []);
+
   const handleLogin = () => {
     login().then(setUser);
   };

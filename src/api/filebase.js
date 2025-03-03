@@ -2,6 +2,7 @@ import {initializeApp} from 'firebase/app';
 import {
   getAuth,
   GoogleAuthProvider,
+  onAuthStateChanged,
   signInWithPopup,
   signOut,
 } from 'firebase/auth';
@@ -29,6 +30,12 @@ export async function login() {
 }
 
 export async function logout() {
-  alert('팝업이 닫혔습니다. 다시 시도해주세요.');
+
   return signOut(auth);
+}
+
+export function onUserStateChanged(callback) {
+  onAuthStateChanged(auth, (user) => {
+    callback(user);
+  });
 }
