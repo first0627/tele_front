@@ -1,9 +1,9 @@
 import {initializeApp} from 'firebase/app';
 import {
-  browserPopupRedirectResolver,
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signOut,
 } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -14,32 +14,21 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-initializeApp(firebaseConfig);
-
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({prompt: 'select_account'});
+provider.setCustomParameters({dipslay: 'popup'});
 
-const auth = getAuth();
+export async function login() {
+  return signInWithPopup(auth, provider).then((result) => {
+    const user = result.user;
+    console.log('🔐 인증 결과:', user);
+    return user;
+  }).catch(console.error);
+}
 
-export function login() {
-  signInWithPopup(auth, provider, browserPopupRedirectResolver).
-      then((result) => {
-        // This gives you a Google Access Token. You can use it to access the Google API.
-        const credential = GoogleAuthProvider.credentialFromResult(result);
-        // The signed-in user info.
-        const user = result.user;
-        // Use the token and user information as need ed
-        console.log('Token:', credential.accessToken);
-        console.log('User:', user);
-      }).
-      catch((error) => {
-        // Handle Errors here.
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
-        // The email of the user's account used.
-        console.error('Email:', error.customData.email);
-        // The AuthCredential type that was used.
-        console.error('Credential:',
-            GoogleAuthProvider.credentialFromError(error));
-      });
+export async function logout() {
+  alert('팝업이 닫혔습니다. 다시 시도해주세요.');
+  return signOut(auth);
 }
