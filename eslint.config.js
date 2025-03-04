@@ -20,7 +20,7 @@ export default [
         sourceType: 'module',
       },
     },
-    settings: {react: {version: '18.3'}},
+    settings: {react: {version: 'detect'}}, // React 버전 자동 감지
     plugins: {
       react,
       'react-hooks': reactHooks,
@@ -36,6 +36,8 @@ export default [
         'warn',
         {allowConstantExport: true},
       ],
+      'react/prop-types': 'off', // prop-types 검사 비활성화
+      'no-unused-vars': ['warn', {argsIgnorePattern: '^_'}], // 사용하지 않는 변수 허용 (_ 접두어)
     },
   },
 ];
