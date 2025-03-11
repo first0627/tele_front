@@ -6,7 +6,6 @@
     }
 }
 
-
 /* ✅ Tailwind 유틸리티 클래스로 brand 색상 추가 */
 @layer utilities {
     .text-brand {
@@ -14,6 +13,7 @@
     }
 }
 
+/* ✅ 글로벌 스타일 */
 body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -21,15 +21,9 @@ body {
     sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    @apply flex flex-col items-center;
 }
 
-#root {
-    @apply w-full max-w-screen-2xl;
-}
-
+/* ✅ #root 스타일을 app.css에서 관리하도록 이동 */
 code {
-    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
-
