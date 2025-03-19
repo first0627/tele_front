@@ -1,4 +1,5 @@
 import {initializeApp} from 'firebase/app';
+import {v4 as uuid} from 'uuid';
 import {
   getAuth,
   GoogleAuthProvider,
@@ -6,7 +7,7 @@ import {
   signInWithPopup,
   signOut,
 } from 'firebase/auth';
-import {get, getDatabase, ref} from 'firebase/database';
+import {get, getDatabase, ref, set} from 'firebase/database';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -53,4 +54,15 @@ async function adminUser(user) {
         }
         return user;
       });
+}
+
+export async function addNewProduct(product, image) {
+  const id = uuid();
+  return await set(ref(db, `products/${id}`), {
+    ...product,
+    id,
+    price: parseInt(product.price),
+    image,
+    options: product.options.split(','),
+  });
 }
