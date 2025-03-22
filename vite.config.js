@@ -9,6 +9,9 @@ export default defineConfig({
     tailwindcss(),
   ],
   server: {
+    proxy: {
+      '/api': 'http://localhost:8080',
+    },
     headers: {
       'Cross-Origin-Opener-Policy': 'unsafe-none',  // COOP 완전 해제
       'Cross-Origin-Embedder-Policy': 'unsafe-none',  // COEP도 완전 해제
