@@ -27,178 +27,193 @@ function App() {
 
   const fetchHistory = useCallback(() => {
     setLoading(true);
-    axios.get('http://localhost:8080/api/telegram/history').then((res) => {
-      const dates = getLast12Days();
+    axios.get('https://telegram-ofu6.onrender.com/api/telegram/history').
+        then((res) => {
+          const dates = getLast12Days();
 
-      const dynamicColumns = [
-        {
-          field: 'channel',
-          headerName: '',
-          minWidth: 100,
-          flex: 1.2,
-          cellClassName: 'channel-cell',
-        },
-        ...dates.slice(1).map(date => ({
-          field: date,
-          headerName: dayjs(date).format('M/D'),
-          minWidth: 70,
-          flex: 0.5,
-          renderCell: (params) => params.value !== null ? params.value : '-',
-        })),
-        ...(!isMobile ? [
-          {
-            field: 'avgDiff',
-            headerName: '총 증감',
-            minWidth: 90,
-            flex: 0.6,
-            renderCell: (params) => {
-              const value = parseInt(params.value.replace(/,/g, ''), 10);
-              return (
-                  <span style={{
-                    color: value > 0 ? 'red' : value < 0
-                        ? 'blue'
-                        : 'black',
-                  }}>
+          const dynamicColumns = [
+            {
+              field: 'channel',
+              headerName: '',
+              minWidth: 100,
+              flex: 1.2,
+              cellClassName: 'channel-cell',
+            },
+            ...dates.slice(1).map(date => ({
+              field: date,
+              headerName: dayjs(date).format('M/D'),
+              minWidth: 70,
+              flex: 0.5,
+              renderCell: (params) => params.value !== null
+                  ? params.value
+                  : '-',
+            })),
+            ...(!isMobile ? [
+              {
+                field: 'avgDiff',
+                headerName: '총 증감',
+                minWidth: 90,
+                flex: 0.6,
+                renderCell: (params) => {
+                  const value = parseInt(params.value.replace(/,/g, ''), 10);
+                  return (
+                      <span style={{
+                        color: value > 0 ? 'red' : value < 0
+                            ? 'blue'
+                            : 'black',
+                      }}>
                   {params.value}
                 </span>
-              );
-            },
-          },
-          {
-            field: 'avgRate',
-            headerName: '총 증감률',
-            minWidth: 90,
-            flex: 0.6,
-            renderCell: (params) => {
-              const numeric = parseFloat(params.value.replace('%', ''));
-              return (
-                  <span style={{
-                    color: numeric > 0 ? 'red' : numeric < 0
-                        ? 'blue'
-                        : 'black',
-                  }}>
+                  );
+                },
+              },
+              {
+                field: 'avgRate',
+                headerName: '총 증감률',
+                minWidth: 90,
+                flex: 0.6,
+                renderCell: (params) => {
+                  const numeric = parseFloat(params.value.replace('%', ''));
+                  return (
+                      <span style={{
+                        color: numeric > 0 ? 'red' : numeric < 0
+                            ? 'blue'
+                            : 'black',
+                      }}>
                   {params.value}
                 </span>
-              );
+                  );
+                },
+              },
+            ] : []),
+            {
+              field: 'action',
+              headerName: '',
+              minWidth: 80,
+              flex: 0.4,
+              renderCell: (params) => {
+                if (params.row.type !== 'main') {
+                  return '';
+                }
+                return (
+                    <Box sx={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      width: '100%',
+                      height: '100%',
+                    }}>
+                      <Button
+                          variant="outlined"
+                          color="primary"
+                          size="small"
+                          href={params.row.url}
+                          target="_blank"
+                      >
+                        이동
+                      </Button>
+                    </Box>
+                );
+              },
             },
-          },
-        ] : []),
-        {
-          field: 'action',
-          headerName: '',
-          minWidth: 80,
-          flex: 0.4,
-          renderCell: (params) => {
-            if (params.row.type !== 'main') {
-              return '';
+          ];
+          setColumns(dynamicColumns);
+
+          const groupedData = res.data.reduce((acc, item) => {
+            const {channelName, channelUrl, date, subscriberCount} = item;
+            if (!acc[channelName]) {
+              acc[channelName] = {
+                channel: channelName,
+                url: channelUrl,
+                counts: {},
+              };
             }
-            return (
-                <Box sx={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  width: '100%',
-                  height: '100%',
-                }}>
-                  <Button
-                      variant="outlined"
-                      color="primary"
-                      size="small"
-                      href={params.row.url}
-                      target="_blank"
-                  >
-                    이동
-                  </Button>
-                </Box>
-            );
-          },
-        },
-      ];
-      setColumns(dynamicColumns);
+            acc[channelName].counts[date] = subscriberCount;
+            return acc;
+          }, {});
 
-      const groupedData = res.data.reduce((acc, item) => {
-        const {channelName, channelUrl, date, subscriberCount} = item;
-        if (!acc[channelName]) {
-          acc[channelName] = {
-            channel: channelName,
-            url: channelUrl,
-            counts: {},
-          };
-        }
-        acc[channelName].counts[date] = subscriberCount;
-        return acc;
-      }, {});
+          const formattedRows = Object.values(groupedData).
+              flatMap((row, index) => {
+                const counts = row.counts;
+                let totalDiff = 0;
+                let totalRate = 0;
+                let diffCount = 0;
 
-      const formattedRows = Object.values(groupedData).flatMap((row, index) => {
-        const counts = row.counts;
-        let totalDiff = 0;
-        let totalRate = 0;
-        let diffCount = 0;
+                const mainRow = {
+                  id: `${index + 1}-main`,
+                  type: 'main',
+                  channel: row.channel,
+                  url: row.url,
+                };
+                const diffRow = {
+                  id: `${index + 1}-diff`,
+                  type: 'diff',
+                  channel: '증감',
+                };
+                const rateRow = {
+                  id: `${index + 1}-rate`,
+                  type: 'rate',
+                  channel: '증감률',
+                };
 
-        const mainRow = {
-          id: `${index + 1}-main`,
-          type: 'main',
-          channel: row.channel,
-          url: row.url,
-        };
-        const diffRow = {id: `${index + 1}-diff`, type: 'diff', channel: '증감'};
-        const rateRow = {id: `${index + 1}-rate`, type: 'rate', channel: '증감률'};
+                dates.slice(1).forEach((date, idx) => {
+                  const today = counts[date] || 0;
+                  const yesterday = counts[dates[idx]] || 0;
 
-        dates.slice(1).forEach((date, idx) => {
-          const today = counts[date] || 0;
-          const yesterday = counts[dates[idx]] || 0;
+                  let diff = null;
+                  let rate = null;
 
-          let diff = null;
-          let rate = null;
+                  if (yesterday !== 0) {
+                    diff = today - yesterday;
+                    rate = ((diff / yesterday) * 100).toFixed(2);
+                    totalDiff += diff;
+                    totalRate += parseFloat(rate);
+                    diffCount++;
+                  }
 
-          if (yesterday !== 0) {
-            diff = today - yesterday;
-            rate = ((diff / yesterday) * 100).toFixed(2);
-            totalDiff += diff;
-            totalRate += parseFloat(rate);
-            diffCount++;
-          }
+                  mainRow[date] = today ? today.toLocaleString() : '-';
 
-          mainRow[date] = today ? today.toLocaleString() : '-';
+                  diffRow[date] = diff !== null
+                      ? <span style={{
+                        color: diff > 0 ? 'red' : diff < 0
+                            ? 'blue'
+                            : 'black',
+                      }}>{diff.toLocaleString()}</span>
+                      : '-';
 
-          diffRow[date] = diff !== null
-              ? <span style={{
-                color: diff > 0 ? 'red' : diff < 0
-                    ? 'blue'
-                    : 'black',
-              }}>{diff.toLocaleString()}</span>
-              : '-';
+                  rateRow[date] = rate !== null
+                      ? <span style={{
+                        color: parseFloat(rate) > 0 ? 'red' : parseFloat(rate) <
+                        0
+                            ? 'blue'
+                            : 'black',
+                      }}>{`${rate}%`}</span>
+                      : '-';
+                });
 
-          rateRow[date] = rate !== null
-              ? <span style={{
-                color: parseFloat(rate) > 0 ? 'red' : parseFloat(rate) < 0
-                    ? 'blue'
-                    : 'black',
-              }}>{`${rate}%`}</span>
-              : '-';
+                const avgDiff = diffCount > 0 ? Math.round(totalDiff) : 0;
+                const avgRate = diffCount > 0
+                    ? (totalRate / diffCount).toFixed(2)
+                    : '0.00';
+
+                mainRow.avgDiff = avgDiff.toLocaleString();
+                mainRow.avgRate = `${avgRate}%`;
+                diffRow.avgDiff = '';
+                diffRow.avgRate = '';
+                rateRow.avgDiff = '';
+                rateRow.avgRate = '';
+
+                return [mainRow, diffRow, rateRow];
+              });
+
+          setRows(formattedRows);
+        }).
+        catch((err) => {
+          console.error('API 호출 에러: ', err);
+        }).
+        finally(() => {
+          setLoading(false);
         });
-
-        const avgDiff = diffCount > 0 ? Math.round(totalDiff) : 0;
-        const avgRate = diffCount > 0
-            ? (totalRate / diffCount).toFixed(2)
-            : '0.00';
-
-        mainRow.avgDiff = avgDiff.toLocaleString();
-        mainRow.avgRate = `${avgRate}%`;
-        diffRow.avgDiff = '';
-        diffRow.avgRate = '';
-        rateRow.avgDiff = '';
-        rateRow.avgRate = '';
-
-        return [mainRow, diffRow, rateRow];
-      });
-
-      setRows(formattedRows);
-    }).catch((err) => {
-      console.error('API 호출 에러: ', err);
-    }).finally(() => {
-      setLoading(false);
-    });
   }, [isMobile]);
 
   useEffect(() => {
