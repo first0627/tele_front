@@ -240,9 +240,9 @@ function App() {
              sx={{overflowX: isMobile ? 'auto' : 'visible'}}>
           <DataGrid
               apiRef={apiRef}
-              autoHeight
               rows={rows}
               columns={columns}
+              rowHeight={30}
               getRowId={(row) => row.id}
               getRowClassName={(params) => {
                 return params.row.type === 'main' ? 'channel-row' : '';
@@ -253,10 +253,10 @@ function App() {
               disableSelectionOnClick
               disableColumnMenu
               sx={{
+                display: 'flex',
+                flexDirection: 'column',
                 minWidth: isMobile ? 800 : '100%',
-                '& .channel-row': {
-                  backgroundColor: '#f9f9f9',
-                },
+                '& .channel-row': {backgroundColor: '#f9f9f9'},
                 '& .MuiDataGrid-columnHeaderTitle': {
                   fontWeight: 'bold',
                   whiteSpace: 'normal',
@@ -277,7 +277,7 @@ function App() {
                   textOverflow: 'unset',
                 },
                 '& .MuiDataGrid-virtualScroller': {
-                  minHeight: 300,
+                  flexGrow: 1,
                 },
               }}
           />
