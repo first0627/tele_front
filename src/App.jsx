@@ -15,7 +15,8 @@ function App() {
   const [rows, setRows] = useState([]);
   const [columns, setColumns] = useState([]);
   const [loading, setLoading] = useState(false);
-  const isMobile = useMediaQuery('(max-width:768px)');
+  const isMobile = useMediaQuery('(max-width:600px)');
+  const isTablet = useMediaQuery('(max-width:1024px)');
 
   const getLast12Days = () => {
     const days = [];
@@ -36,65 +37,61 @@ function App() {
               field: 'channel',
               headerName: '',
               minWidth: 100,
-              flex: 1.2,
+              flex: 1.5,
               cellClassName: 'channel-cell',
             },
             ...dates.slice(1).map(date => ({
               field: date,
               headerName: dayjs(date).format('M/D'),
-              minWidth: 70,
-              flex: 0.5,
+              minWidth: isMobile ? 50 : 80,
+              flex: isMobile ? 0.3 : 0.5,
               renderCell: (params) => params.value !== null
                   ? params.value
                   : '-',
             })),
-            ...(!isMobile ? [
-              {
-                field: 'avgDiff',
-                headerName: '총 증감',
-                minWidth: 90,
-                flex: 0.6,
-                renderCell: (params) => {
-                  const value = parseInt(params.value.replace(/,/g, ''), 10);
-                  return (
-                      <span style={{
-                        color: value > 0 ? 'red' : value < 0
-                            ? 'blue'
-                            : 'black',
-                      }}>
+            {
+              field: 'avgDiff',
+              headerName: '총 증감',
+              minWidth: isMobile ? 70 : 90,
+              flex: isMobile ? 0.4 : 0.6,
+              renderCell: (params) => {
+                const value = parseInt(params.value.replace(/,/g, ''), 10);
+                return (
+                    <span style={{
+                      color: value > 0 ? 'red' : value < 0
+                          ? 'blue'
+                          : 'black',
+                    }}>
                   {params.value}
                 </span>
-                  );
-                },
+                );
               },
-              {
-                field: 'avgRate',
-                headerName: '총 증감률',
-                minWidth: 90,
-                flex: 0.6,
-                renderCell: (params) => {
-                  const numeric = parseFloat(params.value.replace('%', ''));
-                  return (
-                      <span style={{
-                        color: numeric > 0 ? 'red' : numeric < 0
-                            ? 'blue'
-                            : 'black',
-                      }}>
+            },
+            {
+              field: 'avgRate',
+              headerName: '총 증감률',
+              minWidth: isMobile ? 70 : 90,
+              flex: isMobile ? 0.4 : 0.6,
+              renderCell: (params) => {
+                const numeric = parseFloat(params.value.replace('%', ''));
+                return (
+                    <span style={{
+                      color: numeric > 0 ? 'red' : numeric < 0
+                          ? 'blue'
+                          : 'black',
+                    }}>
                   {params.value}
                 </span>
-                  );
-                },
+                );
               },
-            ] : []),
+            },
             {
               field: 'action',
               headerName: '',
-              minWidth: 80,
+              minWidth: 60,
               flex: 0.4,
               renderCell: (params) => {
-                if (params.row.type !== 'main') {
-                  return '';
-                }
+                if (params.row.type !== 'main') return '';
                 return (
                     <Box sx={{
                       display: 'flex',
@@ -173,28 +170,22 @@ function App() {
 
                   mainRow[date] = today ? today.toLocaleString() : '-';
 
-                  diffRow[date] = diff !== null
-                      ? <span style={{
-                        color: diff > 0 ? 'red' : diff < 0
-                            ? 'blue'
-                            : 'black',
-                      }}>{diff.toLocaleString()}</span>
-                      : '-';
+                  diffRow[date] = diff !== null ? <span style={{
+                    color: diff > 0 ? 'red' : diff < 0
+                        ? 'blue'
+                        : 'black',
+                  }}>{diff.toLocaleString()}</span> : '-';
 
-                  rateRow[date] = rate !== null
-                      ? <span style={{
-                        color: parseFloat(rate) > 0 ? 'red' : parseFloat(rate) <
-                        0
-                            ? 'blue'
-                            : 'black',
-                      }}>{`${rate}%`}</span>
-                      : '-';
+                  rateRow[date] = rate !== null ? <span style={{
+                    color: parseFloat(rate) > 0 ? 'red' : parseFloat(rate) < 0
+                        ? 'blue'
+                        : 'black',
+                  }}>{`${rate}%`}</span> : '-';
                 });
 
                 const avgDiff = diffCount > 0 ? Math.round(totalDiff) : 0;
-                const avgRate = diffCount > 0
-                    ? (totalRate / diffCount).toFixed(2)
-                    : '0.00';
+                const avgRate = diffCount > 0 ? (totalRate / diffCount).toFixed(
+                    2) : '0.00';
 
                 mainRow.avgDiff = avgDiff.toLocaleString();
                 mainRow.avgRate = `${avgRate}%`;
@@ -236,12 +227,14 @@ function App() {
               <CircularProgress/>
             </Box>
         ) : (
-            <Box width="100%" px={2}>
+            <Box width="100%" px={1}>
               <DataGrid
                   autoHeight
-                  autoPageSize
                   rows={rows}
                   columns={columns}
+                  density={isMobile ? 'compact' : isTablet
+                      ? 'standard'
+                      : 'comfortable'}
                   disableSelectionOnClick
                   getRowClassName={(params) => {
                     if (params.row.type === 'diff') return 'diff-row';
