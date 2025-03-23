@@ -198,7 +198,8 @@ function App() {
   }, [dates]);
 
   const initialFetch = useCallback(async () => {
-    const res = await axios.get('http://localhost:5173/api/telegram/history');
+    const res = await axios.get(
+        'https://telegram-ofu6.onrender.com/api/telegram/history');
     const formattedRows = processData(res.data);
     setRows(formattedRows);
   }, [processData]);
@@ -207,7 +208,8 @@ function App() {
     setLoading(true);
     try {
       await axios.post('http://localhost:5173/api/telegram/save');
-      const res = await axios.get('http://localhost:5173/api/telegram/history');
+      const res = await axios.get(
+          'https://telegram-ofu6.onrender.com/api/telegram/history');
       const formattedRows = processData(res.data);
 
       setRows(formattedRows);
