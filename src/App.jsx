@@ -40,8 +40,7 @@ function App() {
         if (row.type === 'main') {
           return (
               <Link href={row.url} target="_blank" rel="noopener"
-                    underline="hover" style={{fontWeight: 'bold'}} // 폰트 굵게 적용
-              >
+                    underline="hover" style={{fontWeight: 'bold'}}>
                 {params.value}
               </Link>
           );
@@ -93,13 +92,14 @@ function App() {
       flex: isMobile ? undefined : 0.6,
       headerAlign: 'center',
       align: 'right',
-      renderCell: ({value}) => {
+      renderCell: ({row, value}) => {
+        if (row.type !== 'main') return null; // mainRow 아닌 경우 출력 X
         const num = parseInt((value || '0').toString().replace(/,/g, ''), 10);
         const color = num > 0 ? 'red' : num < 0 ? 'blue' : 'black';
         return (
             <span style={{color}}>
-            {num.toLocaleString()}
-          </span>
+        {num.toLocaleString()}
+      </span>
         );
       },
     },
@@ -110,13 +110,14 @@ function App() {
       flex: isMobile ? undefined : 0.6,
       headerAlign: 'center',
       align: 'right',
-      renderCell: ({value}) => {
+      renderCell: ({row, value}) => {
+        if (row.type !== 'main') return null; // mainRow 아닌 경우 출력 X
         const num = parseFloat((value || '0').toString().replace('%', ''));
         const color = num > 0 ? 'red' : num < 0 ? 'blue' : 'black';
         return (
             <span style={{color}}>
-            {value}
-          </span>
+        {value}
+      </span>
         );
       },
       headerClassName: 'nowrap-header',
@@ -181,17 +182,10 @@ function App() {
         mainRow[date] = today ? today : '-';
       });
 
-      const avgDiff = diffCount > 0 ? Math.round(totalDiff) : 0;
-      const avgRate = diffCount > 0
-          ? (totalRate / diffCount).toFixed(2)
-          : '0.00';
-
-      mainRow.avgDiff = avgDiff;
-      mainRow.avgRate = `${avgRate}%`;
-      diffRow.avgDiff = '';
-      diffRow.avgRate = '';
-      rateRow.avgDiff = '';
-      rateRow.avgRate = '';
+      mainRow.avgDiff = totalDiff;
+      mainRow.avgRate = diffCount > 0
+          ? `${(totalRate / diffCount).toFixed(2)}%`
+          : '0.00%';
 
       return [mainRow, diffRow, rateRow];
     });
@@ -207,7 +201,7 @@ function App() {
   const saveAndUpdateToday = useCallback(async () => {
     setLoading(true);
     try {
-      await axios.post('http://localhost:5173/api/telegram/save');
+      await axios.post('https://telegram-ofu6.onrender.com/api/telegram/save');
       const res = await axios.get(
           'https://telegram-ofu6.onrender.com/api/telegram/history');
       const formattedRows = processData(res.data);
@@ -250,6 +244,9 @@ function App() {
               rows={rows}
               columns={columns}
               getRowId={(row) => row.id}
+              getRowClassName={(params) => {
+                return params.row.type === 'main' ? 'channel-row' : '';
+              }}
               density={isMobile ? 'compact' : isTablet
                   ? 'standard'
                   : 'comfortable'}
@@ -257,10 +254,6 @@ function App() {
               disableColumnMenu
               sx={{
                 minWidth: isMobile ? 800 : '100%',
-                '& .channel-row .channel-cell': {
-                  backgroundColor: '#f9f9f9',
-                  fontWeight: 'bold',
-                },
                 '& .channel-row': {
                   backgroundColor: '#f9f9f9',
                 },
