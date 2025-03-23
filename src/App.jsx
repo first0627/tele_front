@@ -51,14 +51,36 @@ function App() {
             headerName: '총 증감',
             minWidth: 90,
             flex: 0.6,
-            renderCell: (params) => params.value !== null ? params.value : '-',
+            renderCell: (params) => {
+              const value = parseInt(params.value.replace(/,/g, ''), 10);
+              return (
+                  <span style={{
+                    color: value > 0 ? 'red' : value < 0
+                        ? 'blue'
+                        : 'black',
+                  }}>
+                  {params.value}
+                </span>
+              );
+            },
           },
           {
             field: 'avgRate',
             headerName: '총 증감률',
             minWidth: 90,
             flex: 0.6,
-            renderCell: (params) => params.value !== null ? params.value : '-',
+            renderCell: (params) => {
+              const numeric = parseFloat(params.value.replace('%', ''));
+              return (
+                  <span style={{
+                    color: numeric > 0 ? 'red' : numeric < 0
+                        ? 'blue'
+                        : 'black',
+                  }}>
+                  {params.value}
+                </span>
+              );
+            },
           },
         ] : []),
         {
@@ -96,7 +118,6 @@ function App() {
 
       const groupedData = res.data.reduce((acc, item) => {
         const {channelName, channelUrl, date, subscriberCount} = item;
-
         if (!acc[channelName]) {
           acc[channelName] = {
             channel: channelName,
@@ -133,7 +154,6 @@ function App() {
           if (yesterday !== 0) {
             diff = today - yesterday;
             rate = ((diff / yesterday) * 100).toFixed(2);
-
             totalDiff += diff;
             totalRate += parseFloat(rate);
             diffCount++;
@@ -188,7 +208,7 @@ function App() {
   return (
       <Container maxWidth="xl" style={{marginTop: '50px'}}>
         <Typography variant="h4" gutterBottom align="center">
-          타채널 구독자수 추적
+          Telegram 채널 통계
         </Typography>
 
         <Box display="flex" justifyContent="flex-end" mb={2} px={2}>
@@ -219,7 +239,6 @@ function App() {
                       backgroundColor: '#f9f9f9',
                       fontWeight: 'bold',
                     },
-
                     '& .channel-row': {
                       backgroundColor: '#f9f9f9',
                     },
