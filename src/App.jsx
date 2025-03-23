@@ -7,6 +7,7 @@ import {
   CircularProgress,
   Container,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
 import dayjs from 'dayjs';
 
@@ -14,10 +15,11 @@ function App() {
   const [rows, setRows] = useState([]);
   const [columns, setColumns] = useState([]);
   const [loading, setLoading] = useState(false);
+  const isMobile = useMediaQuery('(max-width:768px)');
 
-  const getLast10Days = () => {
+  const getLast12Days = () => {
     const days = [];
-    for (let i = 10; i >= 0; i--) {
+    for (let i = 11; i >= 0; i--) {
       days.push(dayjs().subtract(i, 'day').format('YYYY-MM-DD'));
     }
     return days;
@@ -26,39 +28,56 @@ function App() {
   const fetchHistory = useCallback(() => {
     setLoading(true);
     axios.get('http://localhost:8080/api/telegram/history').then((res) => {
-      const dates = getLast10Days();
+      const dates = getLast12Days();
 
-      // columns 설정
       const dynamicColumns = [
-        {field: 'channel', headerName: '채널명', minWidth: 150, flex: 1.5},
-        ...dates.map(date => ({
+        {
+          field: 'channel',
+          headerName: '',
+          minWidth: 100,
+          flex: 1.2,
+          cellClassName: 'channel-cell',
+        },
+        ...dates.slice(1).map(date => ({
           field: date,
           headerName: dayjs(date).format('M/D'),
-          minWidth: 80,
-          flex: 0.7,
+          minWidth: 70,
+          flex: 0.5,
           renderCell: (params) => params.value !== null ? params.value : '-',
         })),
-        {
-          field: 'avgDiff',
-          headerName: '10일 평균 증감',
-          minWidth: 100,
-          flex: 0.8,
-          renderCell: (params) => params.value !== null ? params.value : '-',
-        },
-        {
-          field: 'avgRate',
-          headerName: '10일 평균 증감률(%)',
-          minWidth: 120,
-          flex: 0.9,
-          renderCell: (params) => params.value !== null ? params.value : '-',
-        },
+        ...(!isMobile ? [
+          {
+            field: 'avgDiff',
+            headerName: '총 증감',
+            minWidth: 90,
+            flex: 0.6,
+            renderCell: (params) => params.value !== null ? params.value : '-',
+          },
+          {
+            field: 'avgRate',
+            headerName: '총 증감률',
+            minWidth: 90,
+            flex: 0.6,
+            renderCell: (params) => params.value !== null ? params.value : '-',
+          },
+        ] : []),
         {
           field: 'action',
-          headerName: '링크',
-          minWidth: 100,
-          flex: 0.8,
-          renderCell: (params) => (
-              params.row.type === 'main' ? (
+          headerName: '',
+          minWidth: 80,
+          flex: 0.4,
+          renderCell: (params) => {
+            if (params.row.type !== 'main') {
+              return '';
+            }
+            return (
+                <Box sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  width: '100%',
+                  height: '100%',
+                }}>
                   <Button
                       variant="outlined"
                       color="primary"
@@ -68,13 +87,13 @@ function App() {
                   >
                     이동
                   </Button>
-              ) : null
-          ),
+                </Box>
+            );
+          },
         },
       ];
       setColumns(dynamicColumns);
 
-      // 데이터 가공
       const groupedData = res.data.reduce((acc, item) => {
         const {channelName, channelUrl, date, subscriberCount} = item;
 
@@ -89,7 +108,6 @@ function App() {
         return acc;
       }, {});
 
-      // row를 3줄씩 생성
       const formattedRows = Object.values(groupedData).flatMap((row, index) => {
         const counts = row.counts;
         let totalDiff = 0;
@@ -105,15 +123,14 @@ function App() {
         const diffRow = {id: `${index + 1}-diff`, type: 'diff', channel: '증감'};
         const rateRow = {id: `${index + 1}-rate`, type: 'rate', channel: '증감률'};
 
-        dates.forEach((date, idx) => {
+        dates.slice(1).forEach((date, idx) => {
           const today = counts[date] || 0;
-          const prevDate = dates[idx - 1];
-          const yesterday = prevDate ? (counts[prevDate] || 0) : null;
+          const yesterday = counts[dates[idx]] || 0;
 
           let diff = null;
           let rate = null;
 
-          if (yesterday !== null && yesterday !== 0) {
+          if (yesterday !== 0) {
             diff = today - yesterday;
             rate = ((diff / yesterday) * 100).toFixed(2);
 
@@ -123,11 +140,25 @@ function App() {
           }
 
           mainRow[date] = today ? today.toLocaleString() : '-';
-          diffRow[date] = diff !== null ? diff.toLocaleString() : '-';
-          rateRow[date] = rate !== null ? `${rate}%` : '-';
+
+          diffRow[date] = diff !== null
+              ? <span style={{
+                color: diff > 0 ? 'red' : diff < 0
+                    ? 'blue'
+                    : 'black',
+              }}>{diff.toLocaleString()}</span>
+              : '-';
+
+          rateRow[date] = rate !== null
+              ? <span style={{
+                color: parseFloat(rate) > 0 ? 'red' : parseFloat(rate) < 0
+                    ? 'blue'
+                    : 'black',
+              }}>{`${rate}%`}</span>
+              : '-';
         });
 
-        const avgDiff = diffCount > 0 ? Math.round(totalDiff / diffCount) : 0;
+        const avgDiff = diffCount > 0 ? Math.round(totalDiff) : 0;
         const avgRate = diffCount > 0
             ? (totalRate / diffCount).toFixed(2)
             : '0.00';
@@ -148,7 +179,7 @@ function App() {
     }).finally(() => {
       setLoading(false);
     });
-  }, []);
+  }, [isMobile]);
 
   useEffect(() => {
     fetchHistory();
@@ -157,10 +188,10 @@ function App() {
   return (
       <Container maxWidth="xl" style={{marginTop: '50px'}}>
         <Typography variant="h4" gutterBottom align="center">
-          텔레그램 채널 10일간 구독자 수 이력
+          타채널 구독자수 추적
         </Typography>
 
-        <Box display="flex" justifyContent="flex-end" mb={2}>
+        <Box display="flex" justifyContent="flex-end" mb={2} px={2}>
           <Button variant="contained" onClick={fetchHistory}>새로고침</Button>
         </Box>
 
@@ -170,25 +201,34 @@ function App() {
               <CircularProgress/>
             </Box>
         ) : (
-            <div style={{width: '1400px', margin: '0 auto'}}>
+            <Box width="100%" px={2}>
               <DataGrid
                   autoHeight
+                  autoPageSize
                   rows={rows}
                   columns={columns}
-                  pageSize={30}
-                  rowsPerPageOptions={[30]}
                   disableSelectionOnClick
                   getRowClassName={(params) => {
                     if (params.row.type === 'diff') return 'diff-row';
                     if (params.row.type === 'rate') return 'rate-row';
+                    if (params.row.type === 'main') return 'channel-row';
                     return '';
                   }}
                   sx={{
-                    '& .diff-row': {backgroundColor: '#f9f9f9'},
-                    '& .rate-row': {backgroundColor: '#f0f0f0'},
+                    '& .channel-row .channel-cell': {
+                      backgroundColor: '#f9f9f9',
+                      fontWeight: 'bold',
+                    },
+
+                    '& .channel-row': {
+                      backgroundColor: '#f9f9f9',
+                    },
+                    '& .MuiDataGrid-columnHeaders .MuiDataGrid-columnHeaderTitle': {
+                      fontWeight: 'bold',
+                    },
                   }}
               />
-            </div>
+            </Box>
         )}
       </Container>
   );
