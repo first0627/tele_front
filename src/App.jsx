@@ -51,7 +51,7 @@ function App() {
     },
     ...dates.slice(1).map((date) => ({
       field: date,
-      headerName: dayjs(date).format('M/D'),
+      headerName: dayjs(date).format('M / D'),
       minWidth: isMobile ? 80 : 100,
       flex: isMobile ? undefined : 0.5,
       headerAlign: 'center',
@@ -93,7 +93,7 @@ function App() {
       headerAlign: 'center',
       align: 'right',
       renderCell: ({row, value}) => {
-        if (row.type !== 'main') return null; // mainRow 아닌 경우 출력 X
+        if (row.type !== 'main') return null;
         const num = parseInt((value || '0').toString().replace(/,/g, ''), 10);
         const color = num > 0 ? 'red' : num < 0 ? 'blue' : 'black';
         return (
@@ -111,7 +111,7 @@ function App() {
       headerAlign: 'center',
       align: 'right',
       renderCell: ({row, value}) => {
-        if (row.type !== 'main') return null; // mainRow 아닌 경우 출력 X
+        if (row.type !== 'main') return null;
         const num = parseFloat((value || '0').toString().replace('%', ''));
         const color = num > 0 ? 'red' : num < 0 ? 'blue' : 'black';
         return (
@@ -275,6 +275,9 @@ function App() {
                   whiteSpace: 'normal',
                   overflow: 'visible',
                   textOverflow: 'unset',
+                },
+                '& .MuiDataGrid-virtualScroller': {
+                  minHeight: 300,
                 },
               }}
           />
