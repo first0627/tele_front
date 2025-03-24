@@ -6,10 +6,17 @@ import {
   Button,
   CircularProgress,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormHelperText,
   IconButton,
   Link,
+  List,
   ListItem,
   ListItemText,
+  TextField,
   Typography,
   useMediaQuery,
 } from '@mui/material';
@@ -17,6 +24,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import dayjs from 'dayjs';
 import {
+  closestCenter,
+  DndContext,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -24,8 +33,10 @@ import {
 } from '@dnd-kit/core';
 import {
   arrayMove,
+  SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
+  verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 
@@ -387,49 +398,85 @@ function App() {
           Telegram 채널 통계
         </Typography>
 
-        {/* ✅ 모달은 항상 최상위에 둔다 */}
+        <Box display="flex" justifyContent="flex-end" alignItems="center" mb={2}
+             gap={1} pr={isMobile ? 1 : 3}>
+          <Button
+              variant="outlined"
+              startIcon={<ManageAccountsIcon/>}
+              onClick={handleOpen}
+          >
+            채널 관리
+          </Button>
+          <Button
+              variant="contained"
+              onClick={saveAndUpdateToday}
+              disabled={loading}
+              startIcon={loading
+                  ? <CircularProgress size={20} color="inherit"/>
+                  : null}
+              sx={{minWidth: '120px'}}
+          >
+            {loading ? '업데이트 중...' : '새로고침'}
+          </Button>
+        </Box>
+
+
+        {/* 채널 관리 모달 */}
         <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm"
                 fullWidth>
           <DialogTitle>채널 관리</DialogTitle>
           <DialogContent dividers>
-            {/* ... */}
+            {channelLoading ? (
+                <Box display="flex" justifyContent="center" alignItems="center"
+                     minHeight="200px">
+                  <CircularProgress/>
+                </Box>
+            ) : (
+                <>
+                  <Box display="flex" gap={1} mb={1}>
+                    <TextField
+                        label="URL ID (예: tazastock)"
+                        size="small"
+                        fullWidth
+                        value={newUrlId}
+                        onChange={(e) => setNewUrlId(e.target.value)}
+                        error={isDuplicate}
+                    />
+                    <Button variant="contained" onClick={handleAdd}
+                            disabled={isDuplicate || !newUrlId}>
+                      추가
+                    </Button>
+                  </Box>
+                  {isDuplicate && (
+                      <FormHelperText error>이미 등록된 URL ID입니다.</FormHelperText>
+                  )}
+                  <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                        items={channels}
+                        strategy={verticalListSortingStrategy}
+                    >
+                      <List>
+                        {channels.map((channel) => (
+                            <SortableItem key={channel.id} channel={channel}/>
+                        ))}
+                      </List>
+                    </SortableContext>
+                  </DndContext>
+                </>
+            )}
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setOpen(false)}>닫기</Button>
           </DialogActions>
         </Dialog>
 
-        {/* ✅ 버튼 + 테이블 묶는 박스 */}
-        <Box sx={{width: '100%', overflowX: isMobile ? 'auto' : 'visible'}}>
-          {/* 버튼 오른쪽 정렬 */}
-          <Box
-              display="flex"
-              justifyContent="flex-end"
-              alignItems="center"
-              mb={1}
-              sx={{minWidth: isMobile ? 800 : '100%'}}
-              gap={1}
-          >
-            <Button
-                variant="outlined"
-                startIcon={<ManageAccountsIcon/>}
-                onClick={handleOpen}
-            >
-              채널 관리
-            </Button>
-            <Button
-                variant="contained"
-                onClick={saveAndUpdateToday}
-                disabled={loading}
-                startIcon={loading ? <CircularProgress size={20}
-                                                       color="inherit"/> : null}
-                sx={{minWidth: '120px'}}
-            >
-              {loading ? '업데이트 중...' : '새로고침'}
-            </Button>
-          </Box>
-
-          {/* 데이터 그리드 */}
+        {/* 통계 테이블 */}
+        <Box width="100%" px={isMobile ? 1 : 3}
+             sx={{overflowX: isMobile ? 'auto' : 'visible'}}>
           <DataGrid
               apiRef={apiRef}
               rows={rows}
@@ -446,6 +493,8 @@ function App() {
               disableColumnMenu
               loading={loading || !fetched}
               sx={{
+                display: 'flex',
+                flexDirection: 'column',
                 minWidth: isMobile ? 800 : '100%',
                 '& .channel-row': {backgroundColor: '#f9f9f9'},
                 '& .MuiDataGrid-columnHeaderTitle': {
