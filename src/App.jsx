@@ -387,8 +387,21 @@ function App() {
           Telegram 채널 통계
         </Typography>
 
-        {/* ✅ 버튼 그룹 & DataGrid를 같은 Box 안에서 정렬 */}
+        {/* ✅ 모달은 항상 최상위에 둔다 */}
+        <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm"
+                fullWidth>
+          <DialogTitle>채널 관리</DialogTitle>
+          <DialogContent dividers>
+            {/* ... */}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpen(false)}>닫기</Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* ✅ 버튼 + 테이블 묶는 박스 */}
         <Box sx={{width: '100%', overflowX: isMobile ? 'auto' : 'visible'}}>
+          {/* 버튼 오른쪽 정렬 */}
           <Box
               display="flex"
               justifyContent="flex-end"
@@ -416,7 +429,7 @@ function App() {
             </Button>
           </Box>
 
-          {/* ✅ 버튼 그룹과 같은 minWidth로 맞춰서 그리드 정렬 */}
+          {/* 데이터 그리드 */}
           <DataGrid
               apiRef={apiRef}
               rows={rows}
