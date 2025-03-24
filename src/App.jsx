@@ -408,7 +408,7 @@ function App() {
         </Typography>
 
         <Box display="flex" justifyContent="flex-end" alignItems="center" mb={2}
-             gap={1} pr={isMobile ? 1 : 3}>
+             gap={1} pr={isMobile ? 1 : 2}>
           <Button
               variant="outlined"
               startIcon={<ManageAccountsIcon/>}
@@ -484,7 +484,7 @@ function App() {
         </Dialog>
 
         {/* 통계 테이블 */}
-        <Box width="100%" px={isMobile ? 1 : 3}
+        <Box width="100%" px={isMobile ? 1 : 2}
              sx={{overflowX: isMobile ? 'auto' : 'visible'}}>
           <DataGrid
               apiRef={apiRef}
