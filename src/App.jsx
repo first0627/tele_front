@@ -378,16 +378,25 @@ function App() {
             ref={setNodeRef}
             style={style}
             {...attributes}
-            {...listeners}
+            // ❌ 여기서는 listeners 제거
             secondaryAction={
-              <IconButton edge="end" onClick={() => handleDelete(channel.id)}>
+              <IconButton
+                  edge="end"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(channel.id);
+                  }}
+              >
                 <DeleteIcon/>
               </IconButton>
             }
         >
+          {/* ✅ 여기에만 드래그 핸들 할당 */}
           <ListItemText
+              {...listeners}
               primary={`${channel.name}`}
               secondary={`/${channel.urlId}`}
+              style={{cursor: 'grab'}}
           />
         </ListItem>
     );
