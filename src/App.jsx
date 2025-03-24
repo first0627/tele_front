@@ -6,17 +6,10 @@ import {
   Button,
   CircularProgress,
   Container,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  FormHelperText,
   IconButton,
   Link,
-  List,
   ListItem,
   ListItemText,
-  TextField,
   Typography,
   useMediaQuery,
 } from '@mui/material';
@@ -24,8 +17,6 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import dayjs from 'dayjs';
 import {
-  closestCenter,
-  DndContext,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -33,10 +24,8 @@ import {
 } from '@dnd-kit/core';
 import {
   arrayMove,
-  SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
-  verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 
@@ -249,11 +238,18 @@ function App() {
     });
   }, [dates]);
 
+  // ✅ initialFetch 수정 (로딩 상태 추가)
   const initialFetch = useCallback(async () => {
-    const res = await axios.get(
-        'https://telegram-ofu6.onrender.com/api/telegram/history');
-    const formattedRows = processData(res.data);
-    setRows(formattedRows);
+    setLoading(true); // 로딩 시작
+    try {
+      const res = await axios.get(
+          'https://telegram-ofu6.onrender.com/api/telegram/history',
+      );
+      const formattedRows = processData(res.data);
+      setRows(formattedRows);
+    } finally {
+      setLoading(false); // 로딩 종료
+    }
   }, [processData]);
 
   const fetchChannels = useCallback(async () => {
@@ -391,86 +387,36 @@ function App() {
           Telegram 채널 통계
         </Typography>
 
-        <Box display="flex" justifyContent="space-between" alignItems="center"
-             mb={2}>
-          <Button
-              variant="outlined"
-              startIcon={<ManageAccountsIcon/>}
-              onClick={handleOpen}
+        {/* ✅ 버튼 그룹 & DataGrid를 같은 Box 안에서 정렬 */}
+        <Box sx={{width: '100%', overflowX: isMobile ? 'auto' : 'visible'}}>
+          <Box
+              display="flex"
+              justifyContent="flex-end"
+              alignItems="center"
+              mb={1}
+              sx={{minWidth: isMobile ? 800 : '100%'}}
+              gap={1}
           >
-            채널 관리
-          </Button>
-          <Box sx={{flexGrow: 1}}/> {/* 가운데 공간 차지 */}
-          <Box>
+            <Button
+                variant="outlined"
+                startIcon={<ManageAccountsIcon/>}
+                onClick={handleOpen}
+            >
+              채널 관리
+            </Button>
             <Button
                 variant="contained"
                 onClick={saveAndUpdateToday}
                 disabled={loading}
                 startIcon={loading ? <CircularProgress size={20}
                                                        color="inherit"/> : null}
-                sx={{minWidth: '120px'}} // 버튼 사이즈 맞춤
+                sx={{minWidth: '120px'}}
             >
               {loading ? '업데이트 중...' : '새로고침'}
             </Button>
           </Box>
-        </Box>
 
-        {/* 채널 관리 모달 */}
-        <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm"
-                fullWidth>
-          <DialogTitle>채널 관리</DialogTitle>
-          <DialogContent dividers>
-            {channelLoading ? (
-                <Box display="flex" justifyContent="center" alignItems="center"
-                     minHeight="200px">
-                  <CircularProgress/>
-                </Box>
-            ) : (
-                <>
-                  <Box display="flex" gap={1} mb={1}>
-                    <TextField
-                        label="URL ID (예: tazastock)"
-                        size="small"
-                        fullWidth
-                        value={newUrlId}
-                        onChange={(e) => setNewUrlId(e.target.value)}
-                        error={isDuplicate}
-                    />
-                    <Button variant="contained" onClick={handleAdd}
-                            disabled={isDuplicate || !newUrlId}>
-                      추가
-                    </Button>
-                  </Box>
-                  {isDuplicate && (
-                      <FormHelperText error>이미 등록된 URL ID입니다.</FormHelperText>
-                  )}
-                  <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={handleDragEnd}
-                  >
-                    <SortableContext
-                        items={channels}
-                        strategy={verticalListSortingStrategy}
-                    >
-                      <List>
-                        {channels.map((channel) => (
-                            <SortableItem key={channel.id} channel={channel}/>
-                        ))}
-                      </List>
-                    </SortableContext>
-                  </DndContext>
-                </>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpen(false)}>닫기</Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* 통계 테이블 */}
-        <Box width="100%" px={1}
-             sx={{overflowX: isMobile ? 'auto' : 'visible'}}>
+          {/* ✅ 버튼 그룹과 같은 minWidth로 맞춰서 그리드 정렬 */}
           <DataGrid
               apiRef={apiRef}
               rows={rows}
@@ -485,11 +431,8 @@ function App() {
                   : 'comfortable'}
               disableSelectionOnClick
               disableColumnMenu
-              loading={loading || !fetched} // ✅ 여기에 로딩 조건 추가
-
+              loading={loading || !fetched}
               sx={{
-                display: 'flex',
-                flexDirection: 'column',
                 minWidth: isMobile ? 800 : '100%',
                 '& .channel-row': {backgroundColor: '#f9f9f9'},
                 '& .MuiDataGrid-columnHeaderTitle': {
