@@ -5,14 +5,18 @@ import {
   Box,
   Button,
   CircularProgress,
+  Container,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormHelperText,
   IconButton,
   Link,
+  List,
   ListItem,
   ListItemText,
+  TextField,
   Typography,
   useMediaQuery,
 } from '@mui/material';
@@ -20,6 +24,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import dayjs from 'dayjs';
 import {
+  closestCenter,
+  DndContext,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -27,8 +33,10 @@ import {
 } from '@dnd-kit/core';
 import {
   arrayMove,
+  SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
+  verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 
@@ -57,8 +65,8 @@ function App() {
     {
       field: 'channel',
       headerName: '',
-      minWidth: isMobile ? 80 : 100,
-      flex: isMobile ? 1 : 1.2,
+      minWidth: 120,
+      flex: 2.25,
       headerAlign: 'left',
       align: 'left',
       renderCell: (params) => {
@@ -385,13 +393,13 @@ function App() {
     );
   };
   return (
-      <Box style={{marginTop: '50px', padding: '0 30px'}}>
+      <Container maxWidth="xl" style={{marginTop: '50px'}}>
         <Typography variant="h4" gutterBottom align="center">
           Telegram 채널 통계
         </Typography>
 
         <Box display="flex" justifyContent="flex-end" alignItems="center" mb={2}
-             gap={1}>
+             gap={1} pr={isMobile ? 1 : 3}>
           <Button
               variant="outlined"
               startIcon={<ManageAccountsIcon/>}
@@ -412,12 +420,54 @@ function App() {
           </Button>
         </Box>
 
+
         {/* 채널 관리 모달 */}
         <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm"
                 fullWidth>
           <DialogTitle>채널 관리</DialogTitle>
           <DialogContent dividers>
-            {/* 모달 내용 동일 */}
+            {channelLoading ? (
+                <Box display="flex" justifyContent="center" alignItems="center"
+                     minHeight="200px">
+                  <CircularProgress/>
+                </Box>
+            ) : (
+                <>
+                  <Box display="flex" gap={1} mb={1}>
+                    <TextField
+                        label="URL ID (예: tazastock)"
+                        size="small"
+                        fullWidth
+                        value={newUrlId}
+                        onChange={(e) => setNewUrlId(e.target.value)}
+                        error={isDuplicate}
+                    />
+                    <Button variant="contained" onClick={handleAdd}
+                            disabled={isDuplicate || !newUrlId}>
+                      추가
+                    </Button>
+                  </Box>
+                  {isDuplicate && (
+                      <FormHelperText error>이미 등록된 URL ID입니다.</FormHelperText>
+                  )}
+                  <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                        items={channels}
+                        strategy={verticalListSortingStrategy}
+                    >
+                      <List>
+                        {channels.map((channel) => (
+                            <SortableItem key={channel.id} channel={channel}/>
+                        ))}
+                      </List>
+                    </SortableContext>
+                  </DndContext>
+                </>
+            )}
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setOpen(false)}>닫기</Button>
@@ -425,7 +475,8 @@ function App() {
         </Dialog>
 
         {/* 통계 테이블 */}
-        <Box width="100%" sx={{overflowX: isMobile ? 'auto' : 'visible'}}>
+        <Box width="100%" px={isMobile ? 1 : 3}
+             sx={{overflowX: isMobile ? 'auto' : 'visible'}}>
           <DataGrid
               apiRef={apiRef}
               rows={rows}
@@ -471,7 +522,7 @@ function App() {
               }}
           />
         </Box>
-      </Box>
+      </Container>
   );
 }
 
