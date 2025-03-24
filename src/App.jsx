@@ -48,6 +48,7 @@ function App() {
   const [open, setOpen] = useState(false);
   const [isDuplicate, setIsDuplicate] = useState(false);
   const [fetched, setFetched] = useState(false);
+  const [channelLoading, setChannelLoading] = useState(false);
 
   const isMobile = useMediaQuery('(max-width:600px)');
   const isTablet = useMediaQuery('(max-width:1024px)');
@@ -256,9 +257,11 @@ function App() {
   }, [processData]);
 
   const fetchChannels = useCallback(async () => {
+    setChannelLoading(true);
     const res = await axios.get(
         'https://telegram-ofu6.onrender.com/api/channels');
     setChannels(res.data);
+    setChannelLoading(false);
   }, []);
 
   const saveAndUpdateToday = useCallback(async () => {
@@ -388,7 +391,8 @@ function App() {
           Telegram 채널 통계
         </Typography>
 
-        <Box display="flex" justifyContent="space-between" mb={2}>
+        <Box display="flex" justifyContent="space-between" alignItems="center"
+             mb={2}>
           <Button
               variant="outlined"
               startIcon={<ManageAccountsIcon/>}
@@ -396,16 +400,19 @@ function App() {
           >
             채널 관리
           </Button>
-          <Button
-              variant="contained"
-              onClick={saveAndUpdateToday}
-              disabled={loading}
-              startIcon={loading
-                  ? <CircularProgress size={20} color="inherit"/>
-                  : null}
-          >
-            {loading ? '업데이트 중...' : '새로고침'}
-          </Button>
+          <Box sx={{flexGrow: 1}}/> {/* 가운데 공간 차지 */}
+          <Box>
+            <Button
+                variant="contained"
+                onClick={saveAndUpdateToday}
+                disabled={loading}
+                startIcon={loading ? <CircularProgress size={20}
+                                                       color="inherit"/> : null}
+                sx={{minWidth: '120px'}} // 버튼 사이즈 맞춤
+            >
+              {loading ? '업데이트 중...' : '새로고침'}
+            </Button>
+          </Box>
         </Box>
 
         {/* 채널 관리 모달 */}
@@ -413,39 +420,48 @@ function App() {
                 fullWidth>
           <DialogTitle>채널 관리</DialogTitle>
           <DialogContent dividers>
-            <Box display="flex" gap={1} mb={1}>
-              <TextField
-                  label="URL ID (예: tazastock)"
-                  size="small"
-                  fullWidth
-                  value={newUrlId}
-                  onChange={(e) => setNewUrlId(e.target.value)}
-                  error={isDuplicate}
-              />
-              <Button variant="contained" onClick={handleAdd}
-                      disabled={isDuplicate || !newUrlId}>
-                추가
-              </Button>
-            </Box>
-            {isDuplicate && (
-                <FormHelperText error>이미 등록된 URL ID입니다.</FormHelperText>
+            {channelLoading ? (
+                <Box display="flex" justifyContent="center" alignItems="center"
+                     minHeight="200px">
+                  <CircularProgress/>
+                </Box>
+            ) : (
+                <>
+                  <Box display="flex" gap={1} mb={1}>
+                    <TextField
+                        label="URL ID (예: tazastock)"
+                        size="small"
+                        fullWidth
+                        value={newUrlId}
+                        onChange={(e) => setNewUrlId(e.target.value)}
+                        error={isDuplicate}
+                    />
+                    <Button variant="contained" onClick={handleAdd}
+                            disabled={isDuplicate || !newUrlId}>
+                      추가
+                    </Button>
+                  </Box>
+                  {isDuplicate && (
+                      <FormHelperText error>이미 등록된 URL ID입니다.</FormHelperText>
+                  )}
+                  <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                        items={channels}
+                        strategy={verticalListSortingStrategy}
+                    >
+                      <List>
+                        {channels.map((channel) => (
+                            <SortableItem key={channel.id} channel={channel}/>
+                        ))}
+                      </List>
+                    </SortableContext>
+                  </DndContext>
+                </>
             )}
-            <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                  items={channels}
-                  strategy={verticalListSortingStrategy}
-              >
-                <List>
-                  {channels.map((channel) => (
-                      <SortableItem key={channel.id} channel={channel}/>
-                  ))}
-                </List>
-              </SortableContext>
-            </DndContext>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setOpen(false)}>닫기</Button>
@@ -469,6 +485,8 @@ function App() {
                   : 'comfortable'}
               disableSelectionOnClick
               disableColumnMenu
+              loading={loading || !fetched} // ✅ 여기에 로딩 조건 추가
+
               sx={{
                 display: 'flex',
                 flexDirection: 'column',
