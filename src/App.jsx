@@ -6,15 +6,48 @@ import {
   Button,
   CircularProgress,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormHelperText,
+  IconButton,
   Link,
+  List,
+  ListItem,
+  ListItemText,
+  TextField,
   Typography,
   useMediaQuery,
 } from '@mui/material';
+import DeleteIcon from '@mui/icons-material/Delete';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import dayjs from 'dayjs';
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {CSS} from '@dnd-kit/utilities';
 
 function App() {
   const [rows, setRows] = useState([]);
+  const [channels, setChannels] = useState([]);
+  const [newUrlId, setNewUrlId] = useState('');
   const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [isDuplicate, setIsDuplicate] = useState(false);
+  const [fetched, setFetched] = useState(false);
 
   const isMobile = useMediaQuery('(max-width:600px)');
   const isTablet = useMediaQuery('(max-width:1024px)');
@@ -32,20 +65,44 @@ function App() {
       field: 'channel',
       headerName: '',
       minWidth: 120,
-      flex: 1.5,
-      headerAlign: 'center',
-      align: 'center',
+      flex: 2.25,
+      headerAlign: 'left',
+      align: 'left',
       renderCell: (params) => {
         const row = params.row;
         if (row.type === 'main') {
           return (
-              <Link href={row.url} target="_blank" rel="noopener"
-                    underline="hover" style={{fontWeight: 'bold'}}>
+              <Link
+                  href={row.url}
+                  target="_blank"
+                  rel="noopener"
+                  underline="hover"
+                  style={{
+                    fontWeight: 'bold',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: 'inline-block',
+                    maxWidth: '100%',
+                  }}
+              >
                 {params.value}
               </Link>
           );
         }
-        return params.value;
+        return (
+            <span
+                style={{
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: 'inline-block',
+                  maxWidth: '100%',
+                }}
+            >
+            {params.value}
+          </span>
+        );
       },
       cellClassName: 'channel-cell',
     },
@@ -198,6 +255,12 @@ function App() {
     setRows(formattedRows);
   }, [processData]);
 
+  const fetchChannels = useCallback(async () => {
+    const res = await axios.get(
+        'https://telegram-ofu6.onrender.com/api/channels');
+    setChannels(res.data);
+  }, []);
+
   const saveAndUpdateToday = useCallback(async () => {
     setLoading(true);
     try {
@@ -205,7 +268,6 @@ function App() {
       const res = await axios.get(
           'https://telegram-ofu6.onrender.com/api/telegram/history');
       const formattedRows = processData(res.data);
-
       setRows(formattedRows);
       apiRef.current.updateRows(formattedRows);
     } finally {
@@ -213,17 +275,127 @@ function App() {
     }
   }, [processData, apiRef]);
 
-  useEffect(() => {
-    void initialFetch();
-  }, [initialFetch]);
+  const handleAdd = async () => {
+    if (!newUrlId || isDuplicate) return;
+    await axios.post('https://telegram-ofu6.onrender.com/api/channels',
+        {urlId: newUrlId});
+    setNewUrlId('');
+    setIsDuplicate(false);
+    await fetchChannels();
+  };
 
+  const handleDelete = async (id) => {
+    const confirm = window.confirm('정말 삭제하시겠습니까?');
+    if (!confirm) return;
+    await axios.delete(`https://telegram-ofu6.onrender.com/api/channels/${id}`);
+    await fetchChannels();
+  };
+
+  const handleOpen = () => {
+    setOpen(true);
+    fetchChannels();
+  };
+
+  useEffect(() => {
+    const exists = channels.some((c) => c.urlId === newUrlId.trim());
+    setIsDuplicate(exists);
+  }, [newUrlId, channels]);
+
+  useEffect(() => {
+    if (!fetched) {
+      initialFetch();
+      setFetched(true);
+    }
+  }, [fetched, initialFetch]);
+
+  const sensors = useSensors(
+      useSensor(PointerSensor),
+      useSensor(KeyboardSensor,
+          {coordinateGetter: sortableKeyboardCoordinates}),
+  );
+
+  const handleDragEnd = async (event) => {
+    const {active, over} = event;
+    if (active.id !== over.id) {
+      const oldIndex = channels.findIndex((c) => c.id === active.id);
+      const newIndex = channels.findIndex((c) => c.id === over.id);
+      const newChannels = arrayMove(channels, oldIndex, newIndex);
+      setChannels(newChannels);
+      reorderRows(newChannels);
+
+      // 서버로 순서 저장
+      await axios.post(
+          'https://telegram-ofu6.onrender.com/api/channels/reorder', {
+            orderedIds: newChannels.map((c) => c.id),
+          });
+    }
+  };
+
+  const reorderRows = (newChannels) => {
+    const newRows = [];
+    newChannels.forEach((channel) => {
+      const mainRow = rows.find(
+          (r) => r.type === 'main' && r.channel === channel.name);
+      const diffRow = rows.find((r) => r.type === 'diff' &&
+          r.id.startsWith(mainRow?.id.split('-')[0]));
+      const rateRow = rows.find((r) => r.type === 'rate' &&
+          r.id.startsWith(mainRow?.id.split('-')[0]));
+      if (mainRow && diffRow && rateRow) {
+        newRows.push(mainRow, diffRow, rateRow);
+      }
+    });
+    setRows(newRows);
+  };
+
+  const SortableItem = ({channel}) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+    } = useSortable({
+      id: channel.id,
+    });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+    };
+
+    return (
+        <ListItem
+            ref={setNodeRef}
+            style={style}
+            {...attributes}
+            {...listeners}
+            secondaryAction={
+              <IconButton edge="end" onClick={() => handleDelete(channel.id)}>
+                <DeleteIcon/>
+              </IconButton>
+            }
+        >
+          <ListItemText
+              primary={`${channel.name}`}
+              secondary={`/${channel.urlId}`}
+          />
+        </ListItem>
+    );
+  };
   return (
       <Container maxWidth="xl" style={{marginTop: '50px'}}>
         <Typography variant="h4" gutterBottom align="center">
           Telegram 채널 통계
         </Typography>
 
-        <Box display="flex" justifyContent="flex-end" mb={2} px={2}>
+        <Box display="flex" justifyContent="space-between" mb={2}>
+          <Button
+              variant="outlined"
+              startIcon={<ManageAccountsIcon/>}
+              onClick={handleOpen}
+          >
+            채널 관리
+          </Button>
           <Button
               variant="contained"
               onClick={saveAndUpdateToday}
@@ -236,6 +408,51 @@ function App() {
           </Button>
         </Box>
 
+        {/* 채널 관리 모달 */}
+        <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm"
+                fullWidth>
+          <DialogTitle>채널 관리</DialogTitle>
+          <DialogContent dividers>
+            <Box display="flex" gap={1} mb={1}>
+              <TextField
+                  label="URL ID (예: tazastock)"
+                  size="small"
+                  fullWidth
+                  value={newUrlId}
+                  onChange={(e) => setNewUrlId(e.target.value)}
+                  error={isDuplicate}
+              />
+              <Button variant="contained" onClick={handleAdd}
+                      disabled={isDuplicate || !newUrlId}>
+                추가
+              </Button>
+            </Box>
+            {isDuplicate && (
+                <FormHelperText error>이미 등록된 URL ID입니다.</FormHelperText>
+            )}
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                  items={channels}
+                  strategy={verticalListSortingStrategy}
+              >
+                <List>
+                  {channels.map((channel) => (
+                      <SortableItem key={channel.id} channel={channel}/>
+                  ))}
+                </List>
+              </SortableContext>
+            </DndContext>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpen(false)}>닫기</Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* 통계 테이블 */}
         <Box width="100%" px={1}
              sx={{overflowX: isMobile ? 'auto' : 'visible'}}>
           <DataGrid
