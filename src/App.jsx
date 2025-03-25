@@ -287,11 +287,18 @@ function App() {
 
   const handleAdd = async () => {
     if (!newUrlId || isDuplicate) return;
-    await axios.post('https://telegram-ofu6.onrender.com/api/channels',
-        {urlId: newUrlId});
-    setNewUrlId('');
-    setIsDuplicate(false);
-    await fetchChannels();
+
+    try {
+      await axios.post('https://telegram-ofu6.onrender.com/api/channels', {
+        urlId: newUrlId,
+      });
+      setNewUrlId('');
+      setIsDuplicate(false);
+      await fetchChannels();
+    } catch (err) {
+      const message = err.response?.data?.error || '알 수 없는 오류가 발생했습니다.';
+      alert(message); // 여기서 바로 사용자에게 뿌려줌
+    }
   };
 
   const handleDelete = async (id) => {
