@@ -440,7 +440,9 @@ function App() {
         {/* 채널 관리 모달 */}
         <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm"
                 fullWidth>
-          <DialogTitle>채널 관리</DialogTitle>
+          <DialogTitle sx={{textAlign: 'center', fontWeight: 'bold'}}>
+            채널 관리
+          </DialogTitle>
           <DialogContent dividers>
             {channelLoading ? (
                 <Box display="flex" justifyContent="center" alignItems="center"
