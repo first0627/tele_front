@@ -56,8 +56,9 @@ function App() {
   const apiRef = useGridApiRef();
 
   const dates = useMemo(() => {
-    return Array.from({length: 12},
-        (_, i) => dayjs().subtract(11 - i, 'day').format('YYYY-MM-DD'));
+    return Array.from({length: 12}, (_, i) =>
+        dayjs().subtract(11 - i, 'day').format('YYYY-MM-DD'),
+    );
   }, []);
 
   const columns = useMemo(() => [
@@ -71,7 +72,8 @@ function App() {
       renderCell: (params) => {
         const row = params.row;
         if (row.type === 'main') {
-          return (<Link
+          return (
+              <Link
                   href={row.url}
                   target="_blank"
                   rel="noopener"
@@ -86,9 +88,11 @@ function App() {
                   }}
               >
                 {params.value}
-              </Link>);
+              </Link>
+          );
         }
-        return (<span
+        return (
+            <span
                 style={{
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
@@ -98,10 +102,12 @@ function App() {
                 }}
             >
             {params.value}
-          </span>);
+          </span>
+        );
       },
       cellClassName: 'channel-cell',
-    }, ...dates.slice(1).map((date) => ({
+    },
+    ...dates.slice(1).map((date) => ({
       field: date,
       headerName: dayjs(date).format('M / D'),
       minWidth: isMobile ? 80 : 100,
@@ -111,26 +117,33 @@ function App() {
       renderCell: (params) => {
         const {row, value} = params;
         if (row.type === 'main') {
-          return (<span style={{color: 'black'}}>
+          return (
+              <span style={{color: 'black'}}>
               {typeof value === 'number' ? value.toLocaleString() : value}
-            </span>);
+            </span>
+          );
         }
         if (row.type === 'diff') {
           const color = value > 0 ? 'red' : value < 0 ? 'blue' : 'black';
-          return (<span style={{color}}>
+          return (
+              <span style={{color}}>
               {typeof value === 'number' ? value.toLocaleString() : value}
-            </span>);
+            </span>
+          );
         }
         if (row.type === 'rate') {
           const num = parseFloat((value || '0').toString().replace('%', ''));
           const color = num > 0 ? 'red' : num < 0 ? 'blue' : 'black';
-          return (<span style={{color}}>
+          return (
+              <span style={{color}}>
               {value}
-            </span>);
+            </span>
+          );
         }
         return value ?? '-';
       },
-    })), {
+    })),
+    {
       field: 'avgDiff',
       headerName: '총 증감',
       minWidth: isMobile ? 80 : 100,
@@ -141,11 +154,14 @@ function App() {
         if (row.type !== 'main') return null;
         const num = parseInt((value || '0').toString().replace(/,/g, ''), 10);
         const color = num > 0 ? 'red' : num < 0 ? 'blue' : 'black';
-        return (<span style={{color}}>
+        return (
+            <span style={{color}}>
         {num.toLocaleString()}
-      </span>);
+      </span>
+        );
       },
-    }, {
+    },
+    {
       field: 'avgRate',
       headerName: '총 증감률',
       minWidth: isMobile ? 80 : 100,
@@ -156,19 +172,24 @@ function App() {
         if (row.type !== 'main') return null;
         const num = parseFloat((value || '0').toString().replace('%', ''));
         const color = num > 0 ? 'red' : num < 0 ? 'blue' : 'black';
-        return (<span style={{color}}>
+        return (
+            <span style={{color}}>
         {value}
-      </span>);
+      </span>
+        );
       },
       headerClassName: 'nowrap-header',
-    }], [dates, isMobile]);
+    },
+  ], [dates, isMobile]);
 
   const processData = useCallback((data) => {
     const groupedData = data.reduce((acc, item) => {
       const {channelName, channelUrl, date, subscriberCount} = item;
       if (!acc[channelName]) {
         acc[channelName] = {
-          channel: channelName, url: channelUrl, counts: {},
+          channel: channelName,
+          url: channelUrl,
+          counts: {},
         };
       }
       acc[channelName].counts[date] = subscriberCount;
@@ -188,10 +209,14 @@ function App() {
         url: row.url,
       };
       const diffRow = {
-        id: `${index + 1}-diff`, type: 'diff', channel: '증감',
+        id: `${index + 1}-diff`,
+        type: 'diff',
+        channel: '증감',
       };
       const rateRow = {
-        id: `${index + 1}-rate`, type: 'rate', channel: '증감률',
+        id: `${index + 1}-rate`,
+        type: 'rate',
+        channel: '증감률',
       };
 
       dates.slice(1).forEach((date, idx) => {
@@ -229,7 +254,8 @@ function App() {
     setLoading(true); // 로딩 시작
     try {
       const res = await axios.get(
-          'https://telegram-ofu6.onrender.com/api/telegram/history');
+          'https://telegram-ofu6.onrender.com/api/telegram/history',
+      );
       const formattedRows = processData(res.data);
       setRows(formattedRows);
     } finally {
@@ -276,7 +302,7 @@ function App() {
   };
 
   const handleDelete = async (id) => {
-    const confirm = window.confirm('해당 채널의 구독자 데이터가 영구 삭제됩니다. 정말 삭제하시겠습니까?');
+    const confirm = window.confirm('해당 채널의 구독자 데이터가 영구 삭제됩니다.\n정말 삭제하시겠습니까?');
     if (!confirm) return;
     await axios.delete(`https://telegram-ofu6.onrender.com/api/channels/${id}`);
     await fetchChannels();
@@ -299,8 +325,11 @@ function App() {
     }
   }, [fetched, initialFetch]);
 
-  const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor,
-      {coordinateGetter: sortableKeyboardCoordinates}));
+  const sensors = useSensors(
+      useSensor(PointerSensor),
+      useSensor(KeyboardSensor,
+          {coordinateGetter: sortableKeyboardCoordinates}),
+  );
 
   const handleDragEnd = async (event) => {
     const {active, over} = event;
@@ -337,29 +366,37 @@ function App() {
 
   const SortableItem = ({channel}) => {
     const {
-      attributes, listeners, setNodeRef, transform, transition,
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
     } = useSortable({
       id: channel.id,
     });
 
     const style = {
-      transform: CSS.Transform.toString(transform), transition,
+      transform: CSS.Transform.toString(transform),
+      transition,
     };
 
-    return (<ListItem
+    return (
+        <ListItem
             ref={setNodeRef}
             style={style}
             {...attributes}
             // ❌ 여기서는 listeners 제거
-            secondaryAction={<IconButton
-                edge="end"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDelete(channel.id);
-                }}
-            >
-              <DeleteIcon/>
-            </IconButton>}
+            secondaryAction={
+              <IconButton
+                  edge="end"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(channel.id);
+                  }}
+              >
+                <DeleteIcon/>
+              </IconButton>
+            }
         >
           {/* ✅ 여기에만 드래그 핸들 할당 */}
           <ListItemText
@@ -368,9 +405,11 @@ function App() {
               secondary={`/${channel.urlId}`}
               style={{cursor: 'grab'}}
           />
-        </ListItem>);
+        </ListItem>
+    );
   };
-  return (<Container maxWidth="xl" style={{marginTop: '50px'}}>
+  return (
+      <Container maxWidth="xl" style={{marginTop: '50px'}}>
         <Typography variant="h4" gutterBottom align="center">
           Telegram 채널 통계
         </Typography>
@@ -407,7 +446,9 @@ function App() {
                 <Box display="flex" justifyContent="center" alignItems="center"
                      minHeight="200px">
                   <CircularProgress/>
-                </Box>) : (<>
+                </Box>
+            ) : (
+                <>
                   <Box display="flex" gap={1} mb={1}>
                     <TextField
                         label="URL ID (예: tazastock)"
@@ -423,7 +464,8 @@ function App() {
                     </Button>
                   </Box>
                   {isDuplicate && (
-                      <FormHelperText error>이미 등록된 URL ID입니다.</FormHelperText>)}
+                      <FormHelperText error>이미 등록된 URL ID입니다.</FormHelperText>
+                  )}
                   <DndContext
                       sensors={sensors}
                       collisionDetection={closestCenter}
@@ -435,12 +477,13 @@ function App() {
                     >
                       <List>
                         {channels.map((channel) => (
-                            <SortableItem key={channel.id}
-                                          channel={channel}/>))}
+                            <SortableItem key={channel.id} channel={channel}/>
+                        ))}
                       </List>
                     </SortableContext>
                   </DndContext>
-                </>)}
+                </>
+            )}
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setOpen(false)}>닫기</Button>
@@ -480,7 +523,9 @@ function App() {
                   whiteSpace: 'nowrap',
                 },
                 '& .MuiDataGrid-columnHeader': {
-                  whiteSpace: 'normal', paddingTop: '8px', paddingBottom: '8px',
+                  whiteSpace: 'normal',
+                  paddingTop: '8px',
+                  paddingBottom: '8px',
                 },
                 '& .MuiDataGrid-cell': {
                   whiteSpace: 'normal',
@@ -493,7 +538,8 @@ function App() {
               }}
           />
         </Box>
-      </Container>);
+      </Container>
+  );
 }
 
 export default App;
